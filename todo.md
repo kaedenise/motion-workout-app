@@ -52,3 +52,15 @@
 - [x] Add axis-specific dominant motion detection per exercise
 - [x] Improve rep counting debounce and peak detection per exercise
 - [x] Add minimum confidence gate before switching exercises
+
+## V3 – Monetization (RevenueCat)
+- [x] Install react-native-purchases (RevenueCat SDK)
+- [x] Create subscription context with purchase state management
+- [x] Build premium paywall screen (monthly + annual tiers)
+- [x] Gate leaderboard behind premium
+- [x] Gate game challenges behind premium
+- [x] Gate voice coach personas (Drill Sergeant, Zen Master) behind premium
+- [x] Gate avatar unlocks above level 3 behind premium
+- [x] Add "Go Premium" entry points on locked features
+- [x] Add restore purchases button
+- [x] Add subscription status badge on profile screen

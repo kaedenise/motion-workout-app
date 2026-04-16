@@ -21,6 +21,8 @@ import { useVoiceCoach } from "@/hooks/use-voice-coach";
 import { useProfile } from "@/lib/profile-context";
 import { useWorkout } from "@/lib/workout-context";
 import { GAME_CHALLENGES, AVATARS, getLevelInfo } from "@/lib/gamification";
+import { PremiumGate, PremiumBadge } from "@/components/premium-gate";
+import { useSubscription } from "@/lib/subscription-context";
 import { EXERCISE_LABELS, EXERCISE_ICONS, type ExerciseType } from "@/lib/workout-store";
 
 const EXERCISE_COLORS: Record<string, string> = {
@@ -37,6 +39,7 @@ type WorkoutTab = "workout" | "challenges";
 export default function WorkoutScreen() {
   const colors = useColors();
   const router = useRouter();
+  const { isPremium } = useSubscription();
   const { profile, addRepsXP, updateQuestProgress } = useProfile();
   const { activeWorkout, startWorkout, updateCurrentExercise, finishWorkout } = useWorkout();
 
@@ -264,6 +267,12 @@ export default function WorkoutScreen() {
 
       {/* ─── CHALLENGES TAB ─── */}
       {tab === "challenges" && (
+        <PremiumGate
+          featureName="Game Challenges"
+          description="Boss battles, speed runs, and endurance modes to test your limits."
+          icon="⚔️"
+          unlocked={isPremium}
+        >
         <FlatList
           data={GAME_CHALLENGES}
           keyExtractor={(item) => item.id}
@@ -305,6 +314,7 @@ export default function WorkoutScreen() {
             );
           }}
         />
+        </PremiumGate>
       )}
     </ScreenContainer>
   );
