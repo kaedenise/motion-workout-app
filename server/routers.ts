@@ -1,28 +1,65 @@
+import { z } from "zod";
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import {
+  upsertLeaderboardEntry,
+  getTopLeaderboard,
+  getUserRank,
+} from "./leaderboard-db";
+import { getLevelInfo } from "../lib/gamification";
 
 export const appRouter = router({
-  // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
+      return { success: true } as const;
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  leaderboard: router({
+    // Get top 50 players
+    getTop: publicProcedure.query(async () => {
+      return getTopLeaderboard(50);
+    }),
+
+    // Submit/update the current user's score (requires auth)
+    submit: protectedProcedure
+      .input(
+        z.object({
+          displayName: z.string().min(1).max(64),
+          avatarId: z.string().max(32),
+          xp: z.number().int().min(0),
+          totalReps: z.number().int().min(0),
+          totalWorkouts: z.number().int().min(0),
+          currentStreak: z.number().int().min(0),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const levelInfo = getLevelInfo(input.xp);
+        await upsertLeaderboardEntry(ctx.user.id, {
+          displayName: input.displayName,
+          avatarId: input.avatarId,
+          xp: input.xp,
+          totalReps: input.totalReps,
+          totalWorkouts: input.totalWorkouts,
+          currentStreak: input.currentStreak,
+          levelTitle: levelInfo.current.title,
+        });
+        const rank = await getUserRank(ctx.user.id);
+        return { success: true, rank };
+      }),
+
+    // Get the current user's rank
+    myRank: protectedProcedure.query(async ({ ctx }) => {
+      const rank = await getUserRank(ctx.user.id);
+      return { rank };
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

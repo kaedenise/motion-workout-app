@@ -35,6 +35,15 @@ const MAPPING = {
   "chart.bar.fill": "bar-chart",
   "dumbbell.fill": "fitness-center",
   "plus.circle.fill": "add-circle",
+  "person.fill": "person",
+  "star.fill": "star",
+  "medal.fill": "military-tech",
+  "target": "gps-fixed",
+  "calendar": "calendar-today",
+  "mic.fill": "mic",
+  "speaker.wave.2.fill": "volume-up",
+  "gear": "settings",
+  "arrow.up.circle.fill": "arrow-upward",
 } as IconMapping;
 
 /**

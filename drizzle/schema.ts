@@ -26,3 +26,22 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 // TODO: Add your tables here
+
+/**
+ * Leaderboard entries — one row per user, updated on each workout submission.
+ */
+export const leaderboard = mysqlTable("leaderboard", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  displayName: varchar("displayName", { length: 64 }).notNull(),
+  avatarId: varchar("avatarId", { length: 32 }).notNull().default("warrior"),
+  xp: int("xp").notNull().default(0),
+  totalReps: int("totalReps").notNull().default(0),
+  totalWorkouts: int("totalWorkouts").notNull().default(0),
+  currentStreak: int("currentStreak").notNull().default(0),
+  levelTitle: varchar("levelTitle", { length: 32 }).notNull().default("Rookie"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type LeaderboardEntry = typeof leaderboard.$inferSelect;
+export type InsertLeaderboardEntry = typeof leaderboard.$inferInsert;

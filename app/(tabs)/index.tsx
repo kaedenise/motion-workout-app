@@ -1,436 +1,505 @@
-import { ScrollView, Text, View, Pressable, FlatList, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  StyleSheet,
+  Platform,
+  FlatList,
+  Dimensions,
+} from "react-native";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ScreenContainer } from "@/components/screen-container";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { useProfile } from "@/lib/profile-context";
 import { useWorkout } from "@/lib/workout-context";
 import {
-  EXERCISE_LABELS,
-  EXERCISE_ICONS,
-  formatDuration,
-  formatDate,
-  formatTime,
-  type WorkoutSession,
-} from "@/lib/workout-store";
+  AVATARS,
+  GAME_CHALLENGES,
+  QUEST_POOL,
+  getLevelInfo,
+  type DailyQuest,
+} from "@/lib/gamification";
 
-const EXERCISE_GUIDE = [
-  {
-    key: "push-up",
-    label: "Push-Up",
-    icon: "💪",
-    tip: "Place phone on floor. Detect Z-axis oscillation as you push up and down.",
-    color: "#FF6B35",
-  },
-  {
-    key: "squat",
-    label: "Squat",
-    icon: "🦵",
-    tip: "Hold phone in hand or pocket. Y-axis dip/rise detects each squat rep.",
-    color: "#8B5CF6",
-  },
-  {
-    key: "jumping-jack",
-    label: "Jumping Jack",
-    icon: "⚡",
-    tip: "Hold phone in hand. High-magnitude spikes count each jumping jack.",
-    color: "#F59E0B",
-  },
-  {
-    key: "sit-up",
-    label: "Sit-Up",
-    icon: "🔥",
-    tip: "Place phone on chest. Forward tilt oscillation detects sit-up reps.",
-    color: "#EF4444",
-  },
-  {
-    key: "running",
-    label: "Running",
-    icon: "🏃",
-    tip: "Hold phone in hand. High-frequency periodic motion detects running.",
-    color: "#00D4AA",
-  },
-];
+const { width } = Dimensions.get("window");
 
-function StatCard({
-  label,
-  value,
-  icon,
-  color,
-}: {
-  label: string;
-  value: string;
-  icon: string;
-  color: string;
-}) {
-  const colors = useColors();
+const ONBOARDING_KEY = "motionfit_onboarding_done";
+
+const EXERCISE_TIPS: Record<string, { emoji: string; tip: string; placement: string }> = {
+  "push-up": { emoji: "💪", tip: "Place phone flat on floor near you", placement: "Floor, face-down" },
+  squat: { emoji: "🦵", tip: "Hold phone in hand or pocket", placement: "Hand or pocket" },
+  "jumping-jack": { emoji: "🙌", tip: "Hold phone in hand while jumping", placement: "In hand" },
+  "sit-up": { emoji: "🧘", tip: "Place phone on chest or hold it", placement: "On chest" },
+  running: { emoji: "🏃", tip: "Hold phone or place in arm band", placement: "Arm band" },
+};
+
+function XPMiniBar({ xp }: { xp: number }) {
+  const { current, progress } = getLevelInfo(xp);
   return (
-    <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <Text style={styles.statIcon}>{icon}</Text>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: colors.muted }]}>{label}</Text>
+    <View style={styles.xpMini}>
+      <View style={styles.xpMiniBarBg}>
+        <View
+          style={[
+            styles.xpMiniBarFill,
+            { width: `${progress * 100}%`, backgroundColor: current.color },
+          ]}
+        />
+      </View>
+      <Text style={[styles.xpMiniLabel, { color: current.color }]}>
+        Lv{current.level}
+      </Text>
     </View>
-  );
-}
-
-function SessionCard({ session }: { session: WorkoutSession }) {
-  const colors = useColors();
-  const router = useRouter();
-  const exercises = [...new Set(session.sets.map((s) => s.exercise))];
-
-  return (
-    <Pressable
-      onPress={() => {
-        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push(`/session/${session.id}` as any);
-      }}
-      style={({ pressed }) => [
-        styles.sessionCard,
-        { backgroundColor: colors.surface, borderColor: colors.border },
-        pressed && { opacity: 0.75 },
-      ]}
-    >
-      <View style={styles.sessionCardTop}>
-        <View>
-          <Text style={[styles.sessionDate, { color: colors.foreground }]}>
-            {formatDate(session.startedAt)}
-          </Text>
-          <Text style={[styles.sessionTime, { color: colors.muted }]}>
-            {formatTime(session.startedAt)} · {formatDuration(session.durationMs)}
-          </Text>
-        </View>
-        <View style={styles.sessionStats}>
-          <Text style={[styles.sessionReps, { color: "#FF6B35" }]}>{session.totalReps}</Text>
-          <Text style={[styles.sessionRepsLabel, { color: colors.muted }]}>reps</Text>
-        </View>
-      </View>
-      <View style={styles.exercisePills}>
-        {exercises.slice(0, 3).map((ex) => (
-          <View
-            key={ex}
-            style={[styles.pill, { backgroundColor: colors.background, borderColor: colors.border }]}
-          >
-            <Text style={styles.pillText}>
-              {EXERCISE_ICONS[ex]} {EXERCISE_LABELS[ex]}
-            </Text>
-          </View>
-        ))}
-        {exercises.length > 3 && (
-          <View style={[styles.pill, { backgroundColor: colors.background, borderColor: colors.border }]}>
-            <Text style={[styles.pillText, { color: colors.muted }]}>+{exercises.length - 3}</Text>
-          </View>
-        )}
-      </View>
-    </Pressable>
   );
 }
 
 export default function HomeScreen() {
   const colors = useColors();
   const router = useRouter();
+  const { profile } = useProfile();
   const { sessions } = useWorkout();
+  const [checkedOnboarding, setCheckedOnboarding] = useState(false);
 
-  const totalWorkouts = sessions.length;
+  const avatar = AVATARS.find((a) => a.id === profile.avatarId) ?? AVATARS[0];
+  const levelInfo = getLevelInfo(profile.xp);
   const totalReps = sessions.reduce((s, w) => s + w.totalReps, 0);
   const totalCalories = sessions.reduce((s, w) => s + w.caloriesBurned, 0);
   const recentSessions = sessions.slice(0, 3);
 
-  const greeting = (() => {
-    const h = new Date().getHours();
-    if (h < 12) return "Good morning";
-    if (h < 17) return "Good afternoon";
-    return "Good evening";
-  })();
+  // Check onboarding
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDING_KEY).then((val) => {
+      if (val !== "1") {
+        router.replace("/onboarding" as any);
+      }
+      setCheckedOnboarding(true);
+    });
+  }, []);
+
+  const today = new Date().toISOString().split("T")[0];
+  const todayQuests = QUEST_POOL.slice(0, 3);
+
+  const getQuestProgress = (quest: DailyQuest) => {
+    if (profile.lastQuestDate !== today) return 0;
+    const key = `ex_${quest.exerciseType ?? "total"}`;
+    return Math.min(profile.questProgress[key] ?? 0, quest.targetReps);
+  };
+
+  const handleStartWorkout = () => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push("/(tabs)/workout" as any);
+  };
+
+  const handleChallenge = (id: string) => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push(`/challenge/${id}` as any);
+  };
+
+  if (!checkedOnboarding) return null;
+
+  const greetingHour = new Date().getHours();
+  const greeting =
+    greetingHour < 12 ? "Good morning" : greetingHour < 17 ? "Good afternoon" : "Good evening";
 
   return (
-    <ScreenContainer>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 32 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: "#1A1A2E" }]}>
-          <View>
-            <Text style={styles.greeting}>{greeting} 👋</Text>
-            <Text style={styles.headerTitle}>Ready to train?</Text>
+    <ScreenContainer containerClassName="bg-background">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+        {/* ─── Hero Header ─── */}
+        <LinearGradient colors={["#0F0C29", "#302B63", "#1A1A2E"]} style={styles.hero}>
+          <View style={styles.heroTop}>
+            <View style={styles.heroGreeting}>
+              <Text style={styles.heroGreetText}>{greeting},</Text>
+              <Text style={styles.heroName}>{profile.name} {avatar.emoji}</Text>
+            </View>
+            <Pressable
+              onPress={() => router.push("/(tabs)/profile" as any)}
+              style={({ pressed }) => [styles.avatarBtn, { borderColor: avatar.color }, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={styles.avatarBtnEmoji}>{avatar.emoji}</Text>
+            </Pressable>
           </View>
-          <View style={[styles.logoCircle, { backgroundColor: "#FF6B35" }]}>
-            <IconSymbol name="dumbbell.fill" size={24} color="#fff" />
-          </View>
-        </View>
 
-        {/* Start Workout CTA */}
+          {/* Level & XP */}
+          <View style={[styles.levelRow, { backgroundColor: levelInfo.current.color + "22", borderColor: levelInfo.current.color }]}>
+            <Text style={[styles.levelTitle, { color: levelInfo.current.color }]}>
+              ⚡ {levelInfo.current.title}
+            </Text>
+            <XPMiniBar xp={profile.xp} />
+            <Text style={[styles.levelXP, { color: "rgba(255,255,255,0.6)" }]}>
+              {profile.xp} XP
+            </Text>
+          </View>
+
+          {/* Streak */}
+          {profile.currentStreak > 0 && (
+            <View style={styles.streakBanner}>
+              <Text style={styles.streakBannerText}>
+                🔥 {profile.currentStreak}-day streak! Keep it up!
+              </Text>
+            </View>
+          )}
+
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            {[
+              { label: "Workouts", value: sessions.length, color: "#FF6B35" },
+              { label: "Total Reps", value: totalReps, color: "#8B5CF6" },
+              { label: "Calories", value: totalCalories, color: "#EF4444" },
+              { label: "Challenges", value: profile.completedChallenges.length, color: "#FFD700" },
+            ].map((s) => (
+              <View key={s.label} style={styles.statItem}>
+                <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
+                <Text style={styles.statLabel}>{s.label}</Text>
+              </View>
+            ))}
+          </View>
+        </LinearGradient>
+
+        {/* ─── Start Workout CTA ─── */}
         <View style={styles.ctaContainer}>
           <Pressable
-            onPress={() => {
-              if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              router.push("/(tabs)/workout" as any);
-            }}
-            style={({ pressed }) => [
-              styles.ctaButton,
-              pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
-            ]}
+            onPress={handleStartWorkout}
+            style={({ pressed }) => [styles.ctaBtn, pressed && { opacity: 0.9 }]}
           >
-            <IconSymbol name="play.fill" size={22} color="#fff" />
-            <Text style={styles.ctaText}>Start Workout</Text>
+            <LinearGradient
+              colors={["#FF6B35", "#FF4500"]}
+              style={styles.ctaBtnGrad}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Text style={styles.ctaBtnText}>⚡  Start Workout</Text>
+              <Text style={styles.ctaBtnSub}>Motion detection ready</Text>
+            </LinearGradient>
           </Pressable>
         </View>
 
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
-          <StatCard label="Workouts" value={String(totalWorkouts)} icon="🏋️" color="#FF6B35" />
-          <StatCard label="Total Reps" value={String(totalReps)} icon="🔄" color="#8B5CF6" />
-          <StatCard label="Calories" value={String(totalCalories)} icon="🔥" color="#EF4444" />
+        {/* ─── Daily Quests ─── */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            📋 Daily Quests
+          </Text>
+          <View style={styles.questList}>
+            {todayQuests.map((quest) => {
+              const progress = getQuestProgress(quest);
+              const pct = Math.min(progress / quest.targetReps, 1);
+              const done = pct >= 1;
+              return (
+                <View
+                  key={quest.id}
+                  style={[
+                    styles.questCard,
+                    {
+                      backgroundColor: done ? "#34D39922" : colors.surface,
+                      borderColor: done ? "#34D399" : colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={styles.questEmoji}>{quest.emoji}</Text>
+                  <View style={styles.questInfo}>
+                    <Text style={[styles.questTitle, { color: colors.foreground }]}>
+                      {quest.title}
+                    </Text>
+                    <View style={styles.questBarBg}>
+                      <View
+                        style={[
+                          styles.questBarFill,
+                          {
+                            width: `${pct * 100}%`,
+                            backgroundColor: done ? "#34D399" : "#FF6B35",
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text style={[styles.questProgress, { color: colors.muted }]}>
+                      {progress} / {quest.targetReps} reps
+                    </Text>
+                  </View>
+                  <View style={styles.questReward}>
+                    <Text style={styles.questXP}>+{quest.xpReward}</Text>
+                    <Text style={[styles.questXPLabel, { color: colors.muted }]}>XP</Text>
+                  </View>
+                  {done && <Text style={styles.questDone}>✅</Text>}
+                </View>
+              );
+            })}
+          </View>
         </View>
 
-        {/* Recent Workouts */}
+        {/* ─── Challenges ─── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Recent Workouts</Text>
-            {sessions.length > 3 && (
-              <Pressable onPress={() => router.push("/(tabs)/history" as any)}>
-                <Text style={[styles.seeAll, { color: "#FF6B35" }]}>See All</Text>
-              </Pressable>
-            )}
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+              ⚔️ Challenges
+            </Text>
+            <Pressable onPress={() => router.push("/(tabs)/workout" as any)}>
+              <Text style={[styles.seeAll, { color: "#FF6B35" }]}>See all →</Text>
+            </Pressable>
           </View>
-
-          {recentSessions.length === 0 ? (
-            <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={styles.emptyEmoji}>🏃</Text>
-              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No workouts yet</Text>
-              <Text style={[styles.emptySubtitle, { color: colors.muted }]}>
-                Start your first workout to see it here
-              </Text>
-            </View>
-          ) : (
-            recentSessions.map((session) => (
-              <SessionCard key={session.id} session={session} />
-            ))
-          )}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.challengeRow}>
+            {GAME_CHALLENGES.slice(0, 6).map((challenge) => {
+              const completed = profile.completedChallenges.includes(challenge.id);
+              const diffColors: Record<string, string> = {
+                easy: "#22C55E",
+                medium: "#F59E0B",
+                hard: "#EF4444",
+                extreme: "#FFD700",
+              };
+              const dc = diffColors[challenge.difficulty];
+              return (
+                <Pressable
+                  key={challenge.id}
+                  onPress={() => handleChallenge(challenge.id)}
+                  style={({ pressed }) => [
+                    styles.challengeCard,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: completed ? "#34D399" : colors.border,
+                    },
+                    pressed && { opacity: 0.8 },
+                  ]}
+                >
+                  <Text style={styles.challengeEmoji}>{challenge.emoji}</Text>
+                  <Text style={[styles.challengeTitle, { color: colors.foreground }]} numberOfLines={2}>
+                    {challenge.title}
+                  </Text>
+                  <View style={[styles.challengeDiff, { backgroundColor: dc + "22", borderColor: dc }]}>
+                    <Text style={[styles.challengeDiffText, { color: dc }]}>
+                      {challenge.difficulty.toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={styles.challengeXP}>+{challenge.xpReward} XP</Text>
+                  {completed && <Text style={styles.challengeDone}>✅</Text>}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </View>
 
-        {/* Exercise Guide */}
+        {/* ─── Exercise Guide ─── */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Exercise Guide</Text>
-          <Text style={[styles.sectionSubtitle, { color: colors.muted }]}>
-            How to position your phone for each exercise
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            📱 Phone Placement Guide
           </Text>
-          {EXERCISE_GUIDE.map((ex) => (
-            <View
-              key={ex.key}
-              style={[styles.guideCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            >
-              <View style={[styles.guideIconBg, { backgroundColor: ex.color + "22" }]}>
-                <Text style={styles.guideIcon}>{ex.icon}</Text>
+          <View style={styles.guideList}>
+            {Object.entries(EXERCISE_TIPS).map(([ex, tip]) => (
+              <View
+                key={ex}
+                style={[styles.guideCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
+                <Text style={styles.guideEmoji}>{tip.emoji}</Text>
+                <View style={styles.guideInfo}>
+                  <Text style={[styles.guideName, { color: colors.foreground }]}>
+                    {ex.replace("-", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </Text>
+                  <Text style={[styles.guideTip, { color: colors.muted }]}>{tip.tip}</Text>
+                  <View style={[styles.guidePlacement, { backgroundColor: "#FF6B3522" }]}>
+                    <Text style={styles.guidePlacementText}>📍 {tip.placement}</Text>
+                  </View>
+                </View>
               </View>
-              <View style={styles.guideContent}>
-                <Text style={[styles.guideLabel, { color: colors.foreground }]}>{ex.label}</Text>
-                <Text style={[styles.guideTip, { color: colors.muted }]}>{ex.tip}</Text>
-              </View>
-            </View>
-          ))}
+            ))}
+          </View>
         </View>
+
+        {/* ─── Recent Workouts ─── */}
+        {recentSessions.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                📜 Recent Workouts
+              </Text>
+              <Pressable onPress={() => router.push("/(tabs)/history" as any)}>
+                <Text style={[styles.seeAll, { color: "#FF6B35" }]}>All →</Text>
+              </Pressable>
+            </View>
+            {recentSessions.map((session) => (
+              <Pressable
+                key={session.id}
+                onPress={() => router.push(`/session/${session.id}` as any)}
+                style={({ pressed }) => [
+                  styles.recentCard,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <View style={styles.recentLeft}>
+                  <Text style={[styles.recentDate, { color: colors.muted }]}>
+                    {new Date(session.startedAt).toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </Text>
+                  <Text style={[styles.recentReps, { color: colors.foreground }]}>
+                    {session.totalReps} reps · {session.caloriesBurned} cal
+                  </Text>
+                </View>
+                <Text style={[styles.recentDuration, { color: "#FF6B35" }]}>
+                  {Math.round(session.durationMs / 60000)}m
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
+  hero: {
+    padding: 20,
+    gap: 12,
+    paddingBottom: 24,
+  },
+  heroTop: {
     flexDirection: "row",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 28,
   },
-  greeting: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.7)",
-    marginBottom: 4,
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  logoCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  heroGreeting: { gap: 2 },
+  heroGreetText: { fontSize: 14, color: "rgba(255,255,255,0.6)" },
+  heroName: { fontSize: 22, fontWeight: "800", color: "#FFFFFF" },
+  avatarBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    backgroundColor: "rgba(255,255,255,0.1)",
     alignItems: "center",
     justifyContent: "center",
   },
-  ctaContainer: {
-    paddingHorizontal: 20,
-    marginTop: -14,
-    marginBottom: 20,
-  },
-  ctaButton: {
-    backgroundColor: "#FF6B35",
+  avatarBtnEmoji: { fontSize: 22 },
+  levelRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 16,
     gap: 10,
-    shadowColor: "#FF6B35",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  ctaText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "700",
+  levelTitle: { fontSize: 13, fontWeight: "700" },
+  xpMini: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6 },
+  xpMiniBarBg: {
+    flex: 1,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    overflow: "hidden",
   },
+  xpMiniBarFill: { height: "100%", borderRadius: 3 },
+  xpMiniLabel: { fontSize: 11, fontWeight: "700" },
+  levelXP: { fontSize: 11 },
+  streakBanner: {
+    backgroundColor: "#FF6B3522",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    alignItems: "center",
+  },
+  streakBannerText: { color: "#FF6B35", fontSize: 13, fontWeight: "700" },
   statsRow: {
     flexDirection: "row",
-    paddingHorizontal: 20,
-    gap: 10,
-    marginBottom: 24,
+    justifyContent: "space-between",
+    marginTop: 4,
   },
-  statCard: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 2,
-  },
-  statIcon: {
-    fontSize: 20,
-    marginBottom: 2,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  statLabel: {
-    fontSize: 11,
-    fontWeight: "500",
-  },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
+  statItem: { alignItems: "center", flex: 1 },
+  statValue: { fontSize: 18, fontWeight: "800" },
+  statLabel: { fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 2 },
+  ctaContainer: { padding: 16 },
+  ctaBtn: { borderRadius: 18, overflow: "hidden" },
+  ctaBtnGrad: { padding: 20, alignItems: "center", gap: 4 },
+  ctaBtnText: { fontSize: 20, fontWeight: "900", color: "#FFFFFF" },
+  ctaBtnSub: { fontSize: 12, color: "rgba(255,255,255,0.8)" },
+  section: { paddingHorizontal: 16, marginBottom: 24 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  seeAll: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  sessionCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 14,
-    marginBottom: 10,
-  },
-  sessionCardTop: {
+  sectionTitle: { fontSize: 17, fontWeight: "700", marginBottom: 12 },
+  seeAll: { fontSize: 13, fontWeight: "600" },
+  questList: { gap: 10 },
+  questCard: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 10,
-  },
-  sessionDate: {
-    fontSize: 15,
-    fontWeight: "600",
-    marginBottom: 2,
-  },
-  sessionTime: {
-    fontSize: 12,
-  },
-  sessionStats: {
-    alignItems: "flex-end",
-  },
-  sessionReps: {
-    fontSize: 22,
-    fontWeight: "800",
-  },
-  sessionRepsLabel: {
-    fontSize: 11,
-  },
-  exercisePills: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-  },
-  pill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  pillText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  emptyCard: {
     alignItems: "center",
-    padding: 32,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  emptyEmoji: {
-    fontSize: 40,
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 6,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    textAlign: "center",
-    lineHeight: 18,
-  },
-  guideCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
     padding: 14,
     borderRadius: 14,
-    borderWidth: 1,
-    marginBottom: 10,
+    borderWidth: 1.5,
     gap: 12,
   },
-  guideIconBg: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  questEmoji: { fontSize: 26 },
+  questInfo: { flex: 1, gap: 5 },
+  questTitle: { fontSize: 14, fontWeight: "700" },
+  questBarBg: {
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "rgba(0,0,0,0.1)",
+    overflow: "hidden",
+  },
+  questBarFill: { height: "100%", borderRadius: 3 },
+  questProgress: { fontSize: 11 },
+  questReward: { alignItems: "center" },
+  questXP: { fontSize: 16, fontWeight: "800", color: "#FFD700" },
+  questXPLabel: { fontSize: 10 },
+  questDone: { fontSize: 20 },
+  challengeRow: { gap: 12, paddingBottom: 4 },
+  challengeCard: {
+    width: 140,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    gap: 8,
     alignItems: "center",
-    justifyContent: "center",
   },
-  guideIcon: {
-    fontSize: 22,
+  challengeEmoji: { fontSize: 32 },
+  challengeTitle: { fontSize: 13, fontWeight: "700", textAlign: "center", lineHeight: 18 },
+  challengeDiff: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
   },
-  guideContent: {
-    flex: 1,
+  challengeDiffText: { fontSize: 10, fontWeight: "800" },
+  challengeXP: { fontSize: 13, color: "#FFD700", fontWeight: "700" },
+  challengeDone: { fontSize: 18 },
+  guideList: { gap: 10 },
+  guideCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 12,
   },
-  guideLabel: {
-    fontSize: 15,
-    fontWeight: "600",
-    marginBottom: 3,
+  guideEmoji: { fontSize: 28 },
+  guideInfo: { flex: 1, gap: 5 },
+  guideName: { fontSize: 14, fontWeight: "700" },
+  guideTip: { fontSize: 12, lineHeight: 16 },
+  guidePlacement: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  guideTip: {
-    fontSize: 13,
-    lineHeight: 18,
+  guidePlacementText: { fontSize: 11, color: "#FF6B35", fontWeight: "600" },
+  recentCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 8,
   },
+  recentLeft: { gap: 3 },
+  recentDate: { fontSize: 12 },
+  recentReps: { fontSize: 15, fontWeight: "700" },
+  recentDuration: { fontSize: 16, fontWeight: "800" },
 });
