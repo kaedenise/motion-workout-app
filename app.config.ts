@@ -28,11 +28,11 @@ const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
   // App branding - update these values directly (do not use env vars)
-  appName: "MotionFit – Smart Workout Tracker",
+  appName: "MotionFit",
   appSlug: "motion-workout-app",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: "",
+  logoUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663565682400/c8tAz7TUzbK68njdR9W5pX/motionfit-icon-geerCdKf535eDmFU2j5LTi.png",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
@@ -64,7 +64,7 @@ const config: ExpoConfig = {
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     package: env.androidPackage,
-    permissions: ["POST_NOTIFICATIONS"],
+      permissions: ["POST_NOTIFICATIONS", "android.permission.HIGH_SAMPLING_RATE_SENSORS"],
     intentFilters: [
       {
         action: "VIEW",
