@@ -64,3 +64,10 @@
 - [x] Add "Go Premium" entry points on locked features
 - [x] Add restore purchases button
 - [x] Add subscription status badge on profile screen
+
+## V3.1 – Phone Number Authentication
+- [x] Create phone auth context with simple phone number + verification code
+- [x] Build phone login screen (input phone, verify code)
+- [x] Update leaderboard to use phone auth instead of OAuth
+- [x] Update server to handle phone-based leaderboard submissions
+- [x] Add phone number to leaderboard display (masked for privacy)

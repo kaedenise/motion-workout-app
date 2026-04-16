@@ -20,6 +20,7 @@ import { trpc, createTRPCClient } from "@/lib/trpc";
 import { WorkoutProvider } from "@/lib/workout-context";
 import { ProfileProvider } from "@/lib/profile-context";
 import { SubscriptionProvider } from "@/lib/subscription-context";
+import { PhoneAuthProvider } from "@/lib/phone-auth-context";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -82,6 +83,7 @@ export default function RootLayout() {
   }, [initialInsets, initialFrame]);
 
   const content = (
+    <PhoneAuthProvider>
     <SubscriptionProvider>
     <ProfileProvider>
     <WorkoutProvider>
@@ -98,6 +100,7 @@ export default function RootLayout() {
             <Stack.Screen name="session/[id]" options={{ presentation: "card" }} />
             <Stack.Screen name="challenge/[id]" options={{ presentation: "card" }} />
             <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
+            <Stack.Screen name="phone-login" options={{ presentation: "modal" }} />
           </Stack>
           <StatusBar style="auto" />
         </QueryClientProvider>
@@ -106,6 +109,7 @@ export default function RootLayout() {
     </WorkoutProvider>
     </ProfileProvider>
     </SubscriptionProvider>
+    </PhoneAuthProvider>
   );
 
   const shouldOverrideSafeArea = Platform.OS === "web";

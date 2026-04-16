@@ -17,7 +17,8 @@ import { useWorkout } from "@/lib/workout-context";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
 import { AVATARS, getLevelInfo } from "@/lib/gamification";
-import { startOAuthLogin } from "@/constants/oauth";
+import { usePhoneAuth } from "@/lib/phone-auth-context";
+import { useRouter } from "expo-router";
 import type { LeaderboardEntry } from "@/drizzle/schema";
 import { PremiumGate } from "@/components/premium-gate";
 import { useSubscription } from "@/lib/subscription-context";
@@ -91,8 +92,9 @@ function LeaderboardRow({
 
 export default function LeaderboardScreen() {
   const colors = useColors();
+  const router = useRouter();
   const { isPremium } = useSubscription();
-  const { user, isAuthenticated } = useAuth();
+  const { phoneNumber, isAuthenticated } = usePhoneAuth();
   const { profile } = useProfile();
   const { sessions } = useWorkout();
 
@@ -107,9 +109,10 @@ export default function LeaderboardScreen() {
   const totalReps = sessions.reduce((s, w) => s + w.totalReps, 0);
 
   const handleSubmit = async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !phoneNumber) return;
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     await submitMutation.mutateAsync({
+      phoneNumber,
       displayName: profile.name,
       avatarId: profile.avatarId,
       xp: profile.xp,
@@ -121,11 +124,11 @@ export default function LeaderboardScreen() {
 
   const handleLogin = () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    startOAuthLogin();
+    router.push("/phone-login");
   };
 
   const entries = topEntries ?? [];
-  const myEntry = entries.find((e) => e.userId === user?.id);
+  const myEntry = entries.find((e) => e.phoneNumber === phoneNumber);
 
   return (
     <PremiumGate
@@ -142,7 +145,7 @@ export default function LeaderboardScreen() {
       </LinearGradient>
 
       {/* Auth / Submit Banner */}
-      {!isAuthenticated ? (
+      {!isAuthenticated || !phoneNumber ? (
         <Pressable
           onPress={handleLogin}
           style={({ pressed }) => [styles.authBanner, pressed && { opacity: 0.85 }]}
@@ -198,7 +201,7 @@ export default function LeaderboardScreen() {
             <LeaderboardRow
               entry={item}
               rank={index + 1}
-              isMe={item.userId === user?.id}
+              isMe={item.phoneNumber === phoneNumber}
             />
           )}
           contentContainerStyle={styles.list}

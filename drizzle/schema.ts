@@ -32,7 +32,8 @@ export type InsertUser = typeof users.$inferInsert;
  */
 export const leaderboard = mysqlTable("leaderboard", {
   id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+  userId: int("userId"),
+  phoneNumber: varchar("phoneNumber", { length: 20 }).unique(),
   displayName: varchar("displayName", { length: 64 }).notNull(),
   avatarId: varchar("avatarId", { length: 32 }).notNull().default("warrior"),
   xp: int("xp").notNull().default(0),
