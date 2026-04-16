@@ -44,3 +44,11 @@
 - [x] Streak tracker with fire animation
 - [x] Level-up celebration animation
 - [x] Database schema: leaderboard_entries, user_profiles tables
+
+## V2.1 – Motion Detection Accuracy
+- [x] Rewrite exercise classification with tighter per-exercise thresholds
+- [x] Increase sampling rate to 20 Hz for better signal resolution
+- [x] Use larger sliding window (30 samples) for more stable classification
+- [x] Add axis-specific dominant motion detection per exercise
+- [x] Improve rep counting debounce and peak detection per exercise
+- [x] Add minimum confidence gate before switching exercises
