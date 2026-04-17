@@ -217,41 +217,41 @@ function clamp(v: number): number {
 // ─── Per-exercise rep counting config ────────────────────────────────────────
 interface RepConfig {
   axis: "ax" | "ay" | "az" | "magnitude";
-  minPeakHeight: number;   // minimum value at peak
-  minPeakProminence: number; // how much above the mean
-  minIntervalMs: number;   // minimum ms between reps
+  minPeakHeight: number;   
+  minPeakProminence: number; 
+  minIntervalMs: number;   
 }
 
 const REP_CONFIG: Record<ExerciseType, RepConfig> = {
   "push-up": {
     axis: "az",
-    minPeakHeight: 0.6,
-    minPeakProminence: 0.15,
-    minIntervalMs: 700,
+    minPeakHeight: 0.4,       
+    minPeakProminence: 0.10,  
+    minIntervalMs: 600,       
   },
   squat: {
     axis: "ay",
-    minPeakHeight: 0.3,
-    minPeakProminence: 0.18,
-    minIntervalMs: 900,
+    minPeakHeight: 0.2,       
+    minPeakProminence: 0.12,  
+    minIntervalMs: 700,       
   },
   "sit-up": {
     axis: "ay",
-    minPeakHeight: 0.3,
-    minPeakProminence: 0.2,
-    minIntervalMs: 900,
+    minPeakHeight: 0.2,       
+    minPeakProminence: 0.15,  
+    minIntervalMs: 700,       
   },
   "jumping-jack": {
     axis: "magnitude",
-    minPeakHeight: 1.4,
-    minPeakProminence: 0.3,
-    minIntervalMs: 500,
+    minPeakHeight: 1.2,       
+    minPeakProminence: 0.2,   
+    minIntervalMs: 400,       
   },
   running: {
     axis: "magnitude",
-    minPeakHeight: 1.5,
-    minPeakProminence: 0.25,
-    minIntervalMs: 300,
+    minPeakHeight: 1.2,       
+    minPeakProminence: 0.15,  
+    minIntervalMs: 250,       
   },
   idle: {
     axis: "magnitude",
@@ -260,6 +260,7 @@ const REP_CONFIG: Record<ExerciseType, RepConfig> = {
     minIntervalMs: 99999,
   },
 };
+
 
 function detectPeak(window: MotionData[], exercise: ExerciseType): boolean {
   if (window.length < 5) return false;
