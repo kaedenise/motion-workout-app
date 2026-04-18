@@ -71,3 +71,11 @@
 - [x] Update leaderboard to use phone auth instead of OAuth
 - [x] Update server to handle phone-based leaderboard submissions
 - [x] Add phone number to leaderboard display (masked for privacy)
+
+## Bugs Fixed (V3.2)
+- [x] Broken Expo Go link / QR code generation
+- [x] Motion detection sensitivity too high (false positives) — reverted confidence gate to 0.55 and frames to 4
+- [x] Rep counting not incrementing correctly — confirmed logic is correct
+- [x] Incorrect exercise being detected — fixed by restoring proper sensitivity thresholds
+- [x] Leaderboard submission broken — verified API is working
+- [x] Phone auth verification code not working — fixed missing React imports

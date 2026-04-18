@@ -9,11 +9,12 @@ const UPDATE_INTERVAL_MS = 50; // 20 Hz
 const WINDOW_SIZE = 30;        // 1.5 seconds of history
 const CLASSIFY_EVERY_N = 3;    // Re-classify every 3 samples (~150ms)
 
-// LOWERED: Was 0.55. Now it only needs 45% confidence to guess an exercise.
-const SWITCH_CONFIDENCE_GATE = 0.45;
+// Minimum confidence required before we switch away from current exercise.
+// This prevents rapid flapping between labels.
+const SWITCH_CONFIDENCE_GATE = 0.55;
 
-// LOWERED: Was 4. Now it only needs 3 consecutive frames to switch.
-const SWITCH_FRAMES_REQUIRED = 3;
+// How many consecutive frames a new label must win before we switch
+const SWITCH_FRAMES_REQUIRED = 4;
 
 
 export interface MotionData {
