@@ -93,12 +93,12 @@
 - [x] Remove paywall (PremiumGate) and make all features free
 - [x] Fix leaderboard to be fully functional with real-time updates
 - [x] Friend challenge system (send/accept invites) — context created
-- [ ] Real-time head-to-head challenge sync (WebSocket or polling)
-- [ ] Challenge result tracking and winner determination
-- [ ] Treadmill game mode (distance/speed targets)
-- [ ] Stairmaster game mode (floors/speed targets)
-- [ ] Background task execution (keep motion detection running)
-- [ ] Push notifications for challenge invites and results
-- [ ] Friend list with search and add functionality
-- [ ] Challenge history and stats
-- [ ] Suggested: Live spectator mode, team challenges, seasonal tournaments
+- [x] Friend challenge UI screen with exercise/rep selection
+- [x] Real-time head-to-head challenge sync
+- [x] Challenge result tracking and winner determination
+- [x] Treadmill game mode (distance/speed targets)
+- [x] Stairmaster game mode (floors/speed targets)
+- [x] Background task execution (keep motion detection running)
+- [x] Push notifications for challenge invites and results
+- [x] Friend list with search and add functionality
+- [x] Challenge history and stats
