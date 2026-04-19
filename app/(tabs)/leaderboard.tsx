@@ -20,8 +20,7 @@ import { AVATARS, getLevelInfo } from "@/lib/gamification";
 import { usePhoneAuth } from "@/lib/phone-auth-context";
 import { useRouter } from "expo-router";
 import type { LeaderboardEntry } from "@/drizzle/schema";
-import { PremiumGate } from "@/components/premium-gate";
-import { useSubscription } from "@/lib/subscription-context";
+
 
 const RANK_MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -93,7 +92,6 @@ function LeaderboardRow({
 export default function LeaderboardScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { isPremium } = useSubscription();
   const { phoneNumber, isAuthenticated } = usePhoneAuth();
   const { profile } = useProfile();
   const { sessions } = useWorkout();
@@ -131,12 +129,6 @@ export default function LeaderboardScreen() {
   const myEntry = entries.find((e) => e.phoneNumber === phoneNumber);
 
   return (
-    <PremiumGate
-      featureName="Global Leaderboard"
-      description="Compete with athletes worldwide. See how you rank against the best."
-      icon="🏆"
-      unlocked={isPremium}
-    >
     <ScreenContainer>
       {/* Header */}
       <LinearGradient colors={["#0F0C29", "#1A1A2E"]} style={styles.header}>
@@ -210,7 +202,6 @@ export default function LeaderboardScreen() {
         />
       )}
     </ScreenContainer>
-    </PremiumGate>
   );
 }
 

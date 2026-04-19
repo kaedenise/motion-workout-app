@@ -88,3 +88,17 @@
 - [x] Workout recovery detection (idle >20s)
 - [x] Rest timer UI during workout
 - [x] Voice coach recovery prompts
+
+## V5 – Competitive Social & Background Features
+- [x] Remove paywall (PremiumGate) and make all features free
+- [x] Fix leaderboard to be fully functional with real-time updates
+- [x] Friend challenge system (send/accept invites) — context created
+- [ ] Real-time head-to-head challenge sync (WebSocket or polling)
+- [ ] Challenge result tracking and winner determination
+- [ ] Treadmill game mode (distance/speed targets)
+- [ ] Stairmaster game mode (floors/speed targets)
+- [ ] Background task execution (keep motion detection running)
+- [ ] Push notifications for challenge invites and results
+- [ ] Friend list with search and add functionality
+- [ ] Challenge history and stats
+- [ ] Suggested: Live spectator mode, team challenges, seasonal tournaments
