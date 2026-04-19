@@ -79,3 +79,12 @@
 - [x] Incorrect exercise being detected — fixed by restoring proper sensitivity thresholds
 - [x] Leaderboard submission broken — verified API is working
 - [x] Phone auth verification code not working — fixed missing React imports
+
+## V4 – Premium Features (SMS, Calibration, Recovery)
+- [x] Twilio SMS integration for real verification codes (backend ready, awaiting credentials)
+- [x] SMS verification code delivery and validation
+- [x] Per-user sensitivity calibration screen (5-rep calibration per exercise)
+- [x] Store calibration profiles in AsyncStorage
+- [x] Workout recovery detection (idle >20s)
+- [x] Rest timer UI during workout
+- [x] Voice coach recovery prompts

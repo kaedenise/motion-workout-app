@@ -18,6 +18,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useMotionDetector } from "@/hooks/use-motion-detector";
 import { useVoiceCoach } from "@/hooks/use-voice-coach";
+import { useRecoveryDetector } from "@/hooks/use-recovery-detector";
 import { useProfile } from "@/lib/profile-context";
 import { useWorkout } from "@/lib/workout-context";
 import { GAME_CHALLENGES, AVATARS, getLevelInfo } from "@/lib/gamification";
@@ -57,6 +58,14 @@ export default function WorkoutScreen() {
 
   const { exercise, reps, confidence, motionData, resetReps } = useMotionDetector(isActive);
   const voiceCoach = useVoiceCoach(profile.voicePersona, profile.voiceEnabled && isActive);
+  const recovery = useRecoveryDetector(isActive, exercise as ExerciseType);
+
+  // Announce recovery prompts
+  useEffect(() => {
+    if (recovery.shouldPrompt && profile.voiceEnabled) {
+      voiceCoach.announceIdle();
+    }
+  }, [recovery.shouldPrompt, profile.voiceEnabled, voiceCoach]);
 
   const exerciseColor = EXERCISE_COLORS[exercise] ?? "#687076";
   const avatar = AVATARS.find((a) => a.id === profile.avatarId) ?? AVATARS[0];
@@ -81,7 +90,7 @@ export default function WorkoutScreen() {
       ]).start();
       voiceCoach.announceRep(reps);
     }
-  }, [reps]);
+  }, [reps, voiceCoach]);
 
   // Timer
   useEffect(() => {
@@ -94,7 +103,7 @@ export default function WorkoutScreen() {
       setElapsedMs(Date.now() - (activeWorkout?.startedAt ?? Date.now()));
     }, 500);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [isActive, activeWorkout?.startedAt]);
+  }, [isActive, activeWorkout?.startedAt, exercise]);
 
   const handleStart = () => {
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -206,6 +215,13 @@ export default function WorkoutScreen() {
                       </View>
                     </View>
                   ))}
+                </View>
+              )}
+
+              {recovery.isResting && (
+                <View style={[styles.recoveryBanner, { backgroundColor: "#F59E0B" }]}>
+                  <Text style={styles.recoveryText}>⏸ Rest: {Math.floor(recovery.restDurationMs / 1000)}s</Text>
+                  <Text style={styles.recoverySubtext}>Ready to continue?</Text>
                 </View>
               )}
 
@@ -344,6 +360,9 @@ const styles = StyleSheet.create({
   motionBarLabel: { width: 14, fontSize: 12, fontWeight: "700" },
   motionBarBg: { flex: 1, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.1)", overflow: "hidden" },
   motionBarFill: { height: "100%", borderRadius: 3 },
+  recoveryBanner: { width: "100%", padding: 12, borderRadius: 12, alignItems: "center", gap: 4, marginBottom: 8 },
+  recoveryText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  recoverySubtext: { color: "rgba(255,255,255,0.7)", fontSize: 12 },
   voiceIndicator: { backgroundColor: "rgba(255,107,53,0.2)", paddingHorizontal: 14, paddingVertical: 6, borderRadius: 10 },
   voiceIndicatorText: { color: "#FF6B35", fontSize: 12, fontWeight: "600" },
   finishBtn: { width: "100%", borderRadius: 14, overflow: "hidden", marginTop: 4 },

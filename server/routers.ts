@@ -9,6 +9,10 @@ import {
   getUserRank,
 } from "./leaderboard-db";
 import { getLevelInfo } from "../lib/gamification";
+import { sendVerificationCodeSMS } from "./sms-service";
+
+// In-memory store for verification codes (in production, use Redis)
+const verificationCodes = new Map<string, { code: string; expiresAt: number }>();
 
 export const appRouter = router({
   system: systemRouter,
@@ -19,6 +23,56 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+  }),
+
+  phone: router({
+    // Request SMS verification code
+    requestCode: publicProcedure
+      .input(z.object({ phoneNumber: z.string().min(10).max(20) }))
+      .mutation(async ({ input }) => {
+        const code = Math.floor(1000 + Math.random() * 9000).toString();
+        const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+        // Send SMS
+        const result = await sendVerificationCodeSMS(input.phoneNumber, code);
+        if (!result.success) {
+          throw new Error(result.error || "Failed to send SMS");
+        }
+
+        // Store code in memory (expires after 10 min)
+        verificationCodes.set(input.phoneNumber, { code, expiresAt });
+
+        return { success: true, messageId: result.messageId };
+      }),
+
+    // Verify the SMS code
+    verifyCode: publicProcedure
+      .input(
+        z.object({
+          phoneNumber: z.string().min(10).max(20),
+          code: z.string().length(4),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const stored = verificationCodes.get(input.phoneNumber);
+
+        if (!stored) {
+          return { success: false, error: "No code requested for this number" };
+        }
+
+        if (Date.now() > stored.expiresAt) {
+          verificationCodes.delete(input.phoneNumber);
+          return { success: false, error: "Code expired" };
+        }
+
+        if (input.code !== stored.code) {
+          return { success: false, error: "Invalid code" };
+        }
+
+        // Code is valid
+        verificationCodes.delete(input.phoneNumber);
+        return { success: true };
+      }),
   }),
 
   leaderboard: router({
