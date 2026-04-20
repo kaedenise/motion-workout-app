@@ -163,6 +163,15 @@ export default function WorkoutScreen() {
         ))}
       </View>
 
+      {/* Quick Challenge Button */}
+      {!isActive && (
+        <Pressable onPress={() => router.push("/friends" as any)} style={({ pressed }) => [styles.quickChallengeBtn, pressed && { opacity: 0.8 }]}>
+          <LinearGradient colors={["#FF6B35", "#FF8C42"]} style={styles.quickChallengeBtnGrad}>
+            <Text style={styles.quickChallengeBtnText}>⚔️ Challenge a Friend</Text>
+          </LinearGradient>
+        </Pressable>
+      )}
+
       {/* ─── WORKOUT TAB ─── */}
       {tab === "workout" && (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
@@ -274,6 +283,13 @@ export default function WorkoutScreen() {
                   <Text style={styles.startBtnText}>⚡  Start Workout</Text>
                 </LinearGradient>
               </Pressable>
+
+              {/* Challenge a Friend Button */}
+              <Pressable onPress={() => router.push("/friends" as any)} style={({ pressed }) => [styles.challengeBtn, pressed && { opacity: 0.85 }]}>
+                <LinearGradient colors={["#FF6B35", "#FF8C42"]} style={styles.challengeBtnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  <Text style={styles.challengeBtnText}>⚔️  Challenge a Friend</Text>
+                </LinearGradient>
+              </Pressable>
             </LinearGradient>
           )}
         </ScrollView>
@@ -368,13 +384,19 @@ const styles = StyleSheet.create({
   startBtn: { width: "100%", borderRadius: 14, overflow: "hidden", marginTop: 4 },
   startBtnGrad: { padding: 18, alignItems: "center" },
   startBtnText: { fontSize: 18, fontWeight: "800", color: "#FFFFFF" },
+  challengeBtn: { width: "100%", borderRadius: 14, overflow: "hidden", marginTop: 12 },
+  challengeBtnGrad: { padding: 16, alignItems: "center" },
+  challengeBtnText: { fontSize: 16, fontWeight: "800", color: "#FFFFFF" },
+  quickChallengeBtn: { marginHorizontal: 16, marginVertical: 8, borderRadius: 12, overflow: "hidden" },
+  quickChallengeBtnGrad: { paddingVertical: 12, alignItems: "center", borderRadius: 12 },
+  quickChallengeBtnText: { fontSize: 14, fontWeight: "700", color: "#FFF" },
   setsCard: { width: "100%", borderRadius: 12, borderWidth: 1, padding: 12, gap: 4, marginTop: 8 },
   setsTitle: { fontSize: 14, fontWeight: "700", marginBottom: 6 },
   setRow: { flexDirection: "row", alignItems: "center", paddingVertical: 6, borderBottomWidth: 0.5, gap: 10 },
   setIcon: { fontSize: 16 },
   setName: { flex: 1, fontSize: 13, fontWeight: "600" },
   setReps: { fontSize: 13, fontWeight: "700" },
-  challengeList: { padding: 16, gap: 10 },
+  challengeList: { padding: 16, gap: 10, paddingBottom: 40 },
   challengeCard: { flexDirection: "row", alignItems: "center", padding: 14, borderRadius: 16, borderWidth: 1.5, gap: 12 },
   challengeEmoji: { fontSize: 32 },
   challengeInfo: { flex: 1, gap: 5 },
