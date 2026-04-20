@@ -36,6 +36,7 @@ const env = {
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
+  additionalScheme: "motionfit",
 };
 
 const config: ExpoConfig = {
@@ -44,7 +45,7 @@ const config: ExpoConfig = {
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
-  scheme: env.scheme,
+  scheme: [env.scheme, env.additionalScheme],
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
   ios: {
@@ -74,6 +75,10 @@ const config: ExpoConfig = {
             scheme: env.scheme,
             host: "*",
           },
+          {
+            scheme: env.additionalScheme,
+            host: "*",
+          },
         ],
         category: ["BROWSABLE", "DEFAULT"],
       },
@@ -85,7 +90,12 @@ const config: ExpoConfig = {
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
-    "expo-router",
+    [
+      "expo-router",
+      {
+        origin: "https://motionfit-c8taz7tu.manus.space",
+      },
+    ],
     [
       "expo-audio",
       {

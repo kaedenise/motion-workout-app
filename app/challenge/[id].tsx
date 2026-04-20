@@ -45,7 +45,7 @@ export default function ChallengeScreen() {
   const startTimeRef = useRef<number>(0);
   const repAnim = useRef(new Animated.Value(1)).current;
 
-  const { exercise: currentExercise, reps: repCount, confidence } = useMotionDetector(phase === "active");
+  const { exercise: currentExercise, reps: repCount, confidence } = useMotionDetector(phase === "active" ? true : false);
 
   const voiceCoach = useVoiceCoach(profile.voicePersona, profile.voiceEnabled);
 

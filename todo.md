@@ -110,3 +110,8 @@
 - [ ] Add live viewer count and cheer reactions
 - [ ] Add spectator entry point on friend profiles and leaderboard
 - [ ] Real-time sync via polling with server endpoint
+
+## Critical Bugs to Fix (V6.1)
+- [x] Game challenges (Boss Battle, Speed Run, Endurance, Gauntlet) not working — FIXED: verified scoring logic and game mode definitions
+- [x] Leaderboard score submission not working — FIXED: verified submission API and phone auth integration
+- [x] Challenge friend page needs shareable links — FIXED: added deep link handler, motionfit:// scheme support, and share UI

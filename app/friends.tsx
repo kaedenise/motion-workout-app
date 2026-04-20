@@ -1,4 +1,4 @@
-import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator, Platform } from "react-native";
+import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator, Platform, Share } from "react-native";
 import { useState, useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -23,6 +23,7 @@ export default function FriendsScreen() {
   const [selectedExercise, setSelectedExercise] = useState<"push-up" | "squat" | "running" | "jumping-jack" | "sit-up">("push-up");
   const [targetReps, setTargetReps] = useState("20");
   const [isCreating, setIsCreating] = useState(false);
+  const [shareLink, setShareLink] = useState<string | null>(null);
 
   const exercises: Array<"push-up" | "squat" | "running" | "jumping-jack" | "sit-up"> = [
     "push-up",
@@ -63,6 +64,15 @@ export default function FriendsScreen() {
       setSelectedExercise("push-up");
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleGenerateShareLink = async () => {
+    if (!selectedFriend) return;
+    const link = `motionfit://challenge?friend=${selectedFriend}&exercise=${selectedExercise}&reps=${targetReps}`;
+    setShareLink(link);
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
 
@@ -282,21 +292,70 @@ export default function FriendsScreen() {
           </View>
 
           {/* Send Challenge Button */}
+          <View style={{ gap: 12 }}>
+            <Pressable
+              onPress={handleCreateChallenge}
+              disabled={isCreating}
+              style={({ pressed }) => [
+                styles.sendButton,
+                pressed && !isCreating && { transform: [{ scale: 0.97 }] },
+              ]}
+            >
+              <LinearGradient colors={["#FF6B35", "#FF4500"]} style={styles.sendButtonGrad}>
+                {isCreating ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.sendButtonText}>🚀 Send Challenge</Text>
+                )}
+              </LinearGradient>
+            </Pressable>
+
+            {/* Share Link Button */}
+            <Pressable
+              onPress={handleGenerateShareLink}
+              style={({ pressed }) => [
+                styles.shareButton,
+                { borderColor: "#FF6B35" },
+                pressed && { opacity: 0.8 },
+              ]}
+            >
+              <Text style={[styles.shareButtonText, { color: "#FF6B35" }]}>🔗 Share Link</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {/* Share Link Display */}
+      {shareLink && (
+        <View style={[styles.section, { backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 2, borderColor: "#22C55E" }]}>
+          <Text style={[styles.setupTitle, { color: colors.foreground }]}>Challenge Link</Text>
+          <Text style={[styles.shareLinkText, { color: colors.muted, marginBottom: 12 }]}>
+            Share this link with your friend to challenge them:
+          </Text>
+          <View style={[styles.shareLinkBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <Text style={[styles.shareLinkValue, { color: colors.foreground }]} selectable>
+              {shareLink}
+            </Text>
+          </View>
           <Pressable
-            onPress={handleCreateChallenge}
-            disabled={isCreating}
+            onPress={async () => {
+              if (Platform.OS !== "web") {
+                Share.share({
+                  message: `Join my MotionFit challenge! ${shareLink}`,
+                  url: shareLink,
+                  title: "MotionFit Challenge",
+                });
+              } else {
+                navigator.clipboard.writeText(shareLink);
+              }
+              setShareLink(null);
+            }}
             style={({ pressed }) => [
-              styles.sendButton,
-              pressed && !isCreating && { transform: [{ scale: 0.97 }] },
+              styles.copyButton,
+              pressed && { opacity: 0.8 },
             ]}
           >
-            <LinearGradient colors={["#FF6B35", "#FF4500"]} style={styles.sendButtonGrad}>
-              {isCreating ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.sendButtonText}>🚀 Send Challenge</Text>
-              )}
-            </LinearGradient>
+            <Text style={[styles.copyButtonText, { color: "#22C55E" }]}>📋 Copy & Share</Text>
           </Pressable>
         </View>
       )}
@@ -338,14 +397,14 @@ const styles = StyleSheet.create({
   progressFill: { height: "100%", borderRadius: 3 },
   searchInput: {
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     marginBottom: 12,
     fontSize: 14,
   },
   empty: { alignItems: "center", paddingVertical: 32 },
   emptyEmoji: { fontSize: 48, marginBottom: 8 },
-  emptyText: { fontSize: 14 },
+  emptyText: { fontSize: 14, fontWeight: "500" },
   friendCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -354,7 +413,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 8,
   },
-  friendAvatar: { fontSize: 40, marginRight: 12 },
+  friendAvatar: { fontSize: 32, marginRight: 12 },
   friendInfo: { flex: 1 },
   friendName: { fontSize: 14, fontWeight: "600" },
   friendLevel: { fontSize: 12, marginTop: 2 },
@@ -367,7 +426,7 @@ const styles = StyleSheet.create({
   exerciseButtonLabel: { fontSize: 10, fontWeight: "600", textAlign: "center" },
   repsInput: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 },
   repsButton: { width: 44, height: 44, borderRadius: 8, backgroundColor: "#FF6B35", alignItems: "center", justifyContent: "center" },
-  repsButtonText: { fontSize: 20, fontWeight: "700", color: "#FFF" },
+  repsButtonText: { fontSize: 16, fontWeight: "700", color: "#FFF" },
   repsValue: {
     flex: 1,
     height: 44,
@@ -381,4 +440,27 @@ const styles = StyleSheet.create({
   sendButton: { borderRadius: 12, overflow: "hidden" },
   sendButtonGrad: { padding: 14, alignItems: "center" },
   sendButtonText: { color: "#FFF", fontSize: 16, fontWeight: "700" },
+  shareButton: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: "center",
+  },
+  shareButtonText: { fontSize: 14, fontWeight: "600" },
+  shareLinkText: { fontSize: 13, lineHeight: 18 },
+  shareLinkBox: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  shareLinkValue: { fontSize: 12, fontFamily: "monospace" },
+  copyButton: {
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#22C55E",
+  },
+  copyButtonText: { fontSize: 14, fontWeight: "600" },
 });

@@ -7,6 +7,7 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
+import { useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 
@@ -100,8 +101,20 @@ export default function LeaderboardScreen() {
     refetchOnWindowFocus: false,
   });
 
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
   const submitMutation = trpc.leaderboard.submit.useMutation({
-    onSuccess: () => refetch(),
+    onSuccess: () => {
+      setSubmitSuccess(true);
+      setSubmitError(null);
+      setTimeout(() => setSubmitSuccess(false), 2000);
+      refetch();
+    },
+    onError: (error) => {
+      setSubmitError(error.message || "Failed to submit score");
+      setSubmitSuccess(false);
+    },
   });
 
   const totalReps = sessions.reduce((s, w) => s + w.totalReps, 0);
@@ -109,15 +122,19 @@ export default function LeaderboardScreen() {
   const handleSubmit = async () => {
     if (!isAuthenticated || !phoneNumber) return;
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await submitMutation.mutateAsync({
-      phoneNumber,
-      displayName: profile.name,
-      avatarId: profile.avatarId,
-      xp: profile.xp,
-      totalReps,
-      totalWorkouts: sessions.length,
-      currentStreak: profile.currentStreak,
-    });
+    try {
+      await submitMutation.mutateAsync({
+        phoneNumber,
+        displayName: profile.name,
+        avatarId: profile.avatarId,
+        xp: profile.xp,
+        totalReps,
+        totalWorkouts: sessions.length,
+        currentStreak: profile.currentStreak,
+      });
+    } catch (err) {
+      console.error("Submit error:", err);
+    }
   };
 
   const handleLogin = () => {
@@ -156,10 +173,15 @@ export default function LeaderboardScreen() {
       ) : (
         <Pressable
           onPress={handleSubmit}
-          style={({ pressed }) => [styles.submitBanner, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && { opacity: 0.8 }]}
+          disabled={submitMutation.isPending}
+          style={({ pressed }) => [styles.submitBanner, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && !submitMutation.isPending && { opacity: 0.8 }]}
         >
           {submitMutation.isPending ? (
             <ActivityIndicator color="#FF6B35" />
+          ) : submitSuccess ? (
+            <Text style={[styles.submitBannerText, { color: "#22C55E" }]}>✅ Score submitted!</Text>
+          ) : submitError ? (
+            <Text style={[styles.submitBannerText, { color: "#EF4444" }]}>❌ {submitError}</Text>
           ) : (
             <Text style={[styles.submitBannerText, { color: colors.foreground }]}>
               {myEntry
