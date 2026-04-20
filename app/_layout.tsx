@@ -22,6 +22,7 @@ import { ProfileProvider } from "@/lib/profile-context";
 import { SubscriptionProvider } from "@/lib/subscription-context";
 import { PhoneAuthProvider } from "@/lib/phone-auth-context";
 import { FriendChallengeProvider } from "@/lib/friend-challenge-context";
+import { SpectatorProvider } from "@/lib/spectator-context";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -86,6 +87,7 @@ export default function RootLayout() {
   const content = (
     <PhoneAuthProvider>
     <FriendChallengeProvider>
+    <SpectatorProvider>
     <SubscriptionProvider>
     <ProfileProvider>
     <WorkoutProvider>
@@ -101,6 +103,7 @@ export default function RootLayout() {
             <Stack.Screen name="onboarding" options={{ presentation: "fullScreenModal" }} />
             <Stack.Screen name="session/[id]" options={{ presentation: "card" }} />
             <Stack.Screen name="challenge/[id]" options={{ presentation: "card" }} />
+            <Stack.Screen name="spectator/[sessionId]" options={{ presentation: "card" }} />
             <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
             <Stack.Screen name="phone-login" options={{ presentation: "modal" }} />
           </Stack>
@@ -111,6 +114,7 @@ export default function RootLayout() {
     </WorkoutProvider>
     </ProfileProvider>
     </SubscriptionProvider>
+    </SpectatorProvider>
     </FriendChallengeProvider>
     </PhoneAuthProvider>
   );

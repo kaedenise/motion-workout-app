@@ -102,3 +102,11 @@
 - [x] Push notifications for challenge invites and results
 - [x] Friend list with search and add functionality
 - [x] Challenge history and stats
+
+## V6 – Live Spectator Mode
+- [ ] Create spectator session context (broadcast/watch workout state)
+- [ ] Build "Go Live" button on workout screen to start broadcasting
+- [ ] Build spectator screen showing live exercise, reps, timer, and avatar
+- [ ] Add live viewer count and cheer reactions
+- [ ] Add spectator entry point on friend profiles and leaderboard
+- [ ] Real-time sync via polling with server endpoint
