@@ -7,7 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Platform,
-  Alert,
+  ScrollView,
 } from "react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -25,10 +25,15 @@ export default function PhoneLoginScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleRequestCode = async () => {
-    if (!phoneNumber.trim()) {
-      Alert.alert("Invalid phone number", "Please enter a valid phone number.");
+    setError("");
+
+    // Simple validation: at least 10 digits
+    const digitsOnly = phoneNumber.replace(/\D/g, "");
+    if (digitsOnly.length < 10) {
+      setError("Please enter a valid phone number (at least 10 digits)");
       return;
     }
 
@@ -41,19 +46,17 @@ export default function PhoneLoginScreen() {
     setLoading(false);
 
     if (success) {
-      Alert.alert(
-        "Code sent!",
-        `A verification code has been sent to ${phoneNumber}.\n\n[Demo: Any 4-digit code works]`
-      );
       setStep("verify");
     } else {
-      Alert.alert("Error", "Failed to send verification code. Please try again.");
+      setError("Failed to send code. Please try again.");
     }
   };
 
   const handleVerify = async () => {
+    setError("");
+
     if (verificationCode.length !== 4) {
-      Alert.alert("Invalid code", "Please enter a 4-digit code.");
+      setError("Please enter a 4-digit code");
       return;
     }
 
@@ -66,10 +69,12 @@ export default function PhoneLoginScreen() {
     setLoading(false);
 
     if (success) {
-      Alert.alert("Success!", "You're now logged in to the leaderboard.");
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
       router.back();
     } else {
-      Alert.alert("Invalid code", "The code you entered is incorrect. Please try again.");
+      setError("Invalid code. Try again.");
       setVerificationCode("");
     }
   };
@@ -78,252 +83,242 @@ export default function PhoneLoginScreen() {
     if (step === "verify") {
       setStep("phone");
       setVerificationCode("");
+      setError("");
     } else {
       router.back();
     }
   };
 
   return (
-    <ScreenContainer edges={["top", "left", "right", "bottom"]} containerClassName="bg-[#0d0d1a]">
-      <View style={styles.container}>
+    <ScreenContainer edges={["top", "left", "right", "bottom"]} containerClassName="bg-background">
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={handleBack} style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}>
-            <Text style={styles.backBtnText}>‹ Back</Text>
+            <Text style={styles.backBtnText}>← Back</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>Leaderboard Login</Text>
-          <View style={{ width: 60 }} />
         </View>
 
         {/* Content */}
         <View style={styles.content}>
           {step === "phone" ? (
             <>
-              <LinearGradient colors={["#ff6b35", "#f7931e"]} style={styles.iconBox}>
+              <LinearGradient colors={["#FF6B35", "#FF8C42"]} style={styles.iconBox}>
                 <Text style={styles.icon}>📱</Text>
               </LinearGradient>
-              <Text style={styles.title}>Enter your phone number</Text>
-              <Text style={styles.subtitle}>
-                We'll send you a verification code to confirm your identity on the leaderboard.
-              </Text>
 
+              <Text style={styles.title}>Join the Leaderboard</Text>
+              <Text style={styles.subtitle}>Enter your phone number to sign in</Text>
+
+              {/* Phone Input */}
               <TextInput
-                placeholder="Enter phone number"
-                placeholderTextColor="rgba(255,255,255,0.3)"
+                placeholder="+1 (555) 123-4567"
+                placeholderTextColor="rgba(0,0,0,0.3)"
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
                 keyboardType="phone-pad"
                 editable={!loading}
-                style={[styles.input, { color: colors.foreground }]}
+                style={[styles.input, { color: colors.foreground, borderColor: error ? "#EF4444" : colors.border }]}
               />
 
+              {error && <Text style={styles.errorText}>{error}</Text>}
+
+              {/* Submit Button */}
               <Pressable
                 onPress={handleRequestCode}
-                disabled={loading}
+                disabled={loading || !phoneNumber.trim()}
                 style={({ pressed }) => [
                   styles.button,
-                  pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
-                  loading && { opacity: 0.7 },
+                  pressed && !loading && { transform: [{ scale: 0.97 }] },
+                  (loading || !phoneNumber.trim()) && { opacity: 0.6 },
                 ]}
               >
                 <LinearGradient
-                  colors={["#ff6b35", "#f7931e"]}
+                  colors={["#FF6B35", "#FF8C42"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  style={styles.buttonGradient}
+                  style={styles.buttonContent}
                 >
                   {loading ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color="#fff" size="small" />
                   ) : (
-                    <Text style={styles.buttonText}>Send Verification Code</Text>
+                    <Text style={styles.buttonText}>Send Code</Text>
                   )}
                 </LinearGradient>
               </Pressable>
+
+              <Text style={styles.note}>We'll send a 4-digit code to verify your number</Text>
             </>
           ) : (
             <>
               <LinearGradient colors={["#06B6D4", "#0891B2"]} style={styles.iconBox}>
                 <Text style={styles.icon}>✓</Text>
               </LinearGradient>
-              <Text style={styles.title}>Enter verification code</Text>
-              <Text style={styles.subtitle}>
-                We sent a 4-digit code to {phoneNumber}. Enter it below to confirm.
-              </Text>
 
+              <Text style={styles.title}>Verify Your Number</Text>
+              <Text style={styles.subtitle}>Enter the 4-digit code sent to {phoneNumber}</Text>
+
+              {/* Code Input */}
               <TextInput
                 placeholder="0000"
-                placeholderTextColor="rgba(255,255,255,0.3)"
+                placeholderTextColor="rgba(0,0,0,0.3)"
                 value={verificationCode}
-                onChangeText={(text) => setVerificationCode(text.slice(0, 4))}
+                onChangeText={(text) => setVerificationCode(text.replace(/\D/g, "").slice(0, 4))}
                 keyboardType="number-pad"
                 maxLength={4}
                 editable={!loading}
-                style={[styles.codeInput, { color: colors.foreground }]}
+                style={[styles.codeInput, { color: colors.foreground, borderColor: error ? "#EF4444" : colors.border }]}
               />
 
+              {error && <Text style={styles.errorText}>{error}</Text>}
+
+              {/* Verify Button */}
               <Pressable
                 onPress={handleVerify}
-                disabled={loading}
+                disabled={loading || verificationCode.length !== 4}
                 style={({ pressed }) => [
                   styles.button,
-                  pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
-                  loading && { opacity: 0.7 },
+                  pressed && !loading && { transform: [{ scale: 0.97 }] },
+                  (loading || verificationCode.length !== 4) && { opacity: 0.6 },
                 ]}
               >
                 <LinearGradient
                   colors={["#06B6D4", "#0891B2"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  style={styles.buttonGradient}
+                  style={styles.buttonContent}
                 >
                   {loading ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color="#fff" size="small" />
                   ) : (
                     <Text style={styles.buttonText}>Verify & Login</Text>
                   )}
                 </LinearGradient>
               </Pressable>
 
+              {/* Change Phone Button */}
               <Pressable
                 onPress={() => {
                   setStep("phone");
                   setVerificationCode("");
+                  setError("");
                 }}
-                style={({ pressed }) => [styles.changePhoneBtn, pressed && { opacity: 0.6 }]}
+                style={({ pressed }) => [styles.secondaryBtn, pressed && { opacity: 0.6 }]}
               >
-                <Text style={styles.changePhoneText}>Use a different phone number</Text>
+                <Text style={styles.secondaryBtnText}>Use Different Number</Text>
               </Pressable>
             </>
           )}
         </View>
-
-        {/* Footer */}
-        <Text style={styles.footer}>
-          Your phone number is only used for leaderboard verification and is never shared.
-        </Text>
-      </View>
+      </ScrollView>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 24,
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
     paddingVertical: 16,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 32,
+    marginBottom: 24,
   },
   backBtn: {
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 0,
   },
   backBtnText: {
     fontSize: 16,
-    color: "rgba(255,255,255,0.6)",
     fontWeight: "600",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#fff",
+    color: "#FF6B35",
   },
   content: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    gap: 16,
   },
   iconBox: {
     width: 80,
     height: 80,
-    borderRadius: 24,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 28,
-    shadowColor: "#ff6b35",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 12,
+    marginBottom: 12,
   },
   icon: {
     fontSize: 40,
   },
   title: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "800",
-    color: "#fff",
+    color: "#FF6B35",
     textAlign: "center",
-    marginBottom: 12,
   },
   subtitle: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.6)",
+    color: "#687076",
     textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 32,
+    lineHeight: 20,
   },
   input: {
     width: "100%",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    marginBottom: 20,
+    borderWidth: 1.5,
+    borderRadius: 12,
+    marginTop: 12,
   },
   codeInput: {
     width: 140,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 32,
     fontWeight: "800",
     textAlign: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    marginBottom: 28,
+    borderWidth: 1.5,
+    borderRadius: 12,
     letterSpacing: 8,
+    marginTop: 12,
+  },
+  errorText: {
+    fontSize: 13,
+    color: "#EF4444",
+    fontWeight: "600",
+    marginTop: 8,
   },
   button: {
     width: "100%",
-    borderRadius: 14,
+    borderRadius: 12,
     overflow: "hidden",
-    marginBottom: 16,
-    shadowColor: "#ff6b35",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    marginTop: 20,
   },
-  buttonGradient: {
-    paddingVertical: 16,
+  buttonContent: {
+    paddingVertical: 14,
     alignItems: "center",
+    justifyContent: "center",
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: "800",
+    fontWeight: "700",
     color: "#fff",
   },
-  changePhoneBtn: {
-    paddingVertical: 8,
+  secondaryBtn: {
+    paddingVertical: 12,
+    marginTop: 12,
   },
-  changePhoneText: {
+  secondaryBtnText: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.4)",
+    color: "#FF6B35",
+    fontWeight: "600",
     textDecorationLine: "underline",
   },
-  footer: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.25)",
+  note: {
+    fontSize: 12,
+    color: "#9CA3AF",
     textAlign: "center",
-    lineHeight: 16,
+    marginTop: 12,
   },
 });
