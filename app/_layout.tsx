@@ -23,6 +23,7 @@ import { SubscriptionProvider } from "@/lib/subscription-context";
 import { PhoneAuthProvider } from "@/lib/phone-auth-context";
 import { FriendChallengeProvider } from "@/lib/friend-challenge-context";
 import { SpectatorProvider } from "@/lib/spectator-context";
+import { CalorieProvider } from "@/lib/calorie-context";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -88,6 +89,7 @@ export default function RootLayout() {
     <PhoneAuthProvider>
     <FriendChallengeProvider>
     <SpectatorProvider>
+    <CalorieProvider>
     <SubscriptionProvider>
     <ProfileProvider>
     <WorkoutProvider>
@@ -114,6 +116,7 @@ export default function RootLayout() {
     </WorkoutProvider>
     </ProfileProvider>
     </SubscriptionProvider>
+    </CalorieProvider>
     </SpectatorProvider>
     </FriendChallengeProvider>
     </PhoneAuthProvider>

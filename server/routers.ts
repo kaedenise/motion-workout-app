@@ -10,12 +10,14 @@ import {
 } from "./leaderboard-db";
 import { getLevelInfo } from "../lib/gamification";
 import { sendVerificationCodeSMS } from "./sms-service";
+import { foodRouter } from "./food-router";
 
 // In-memory store for verification codes (in production, use Redis)
 const verificationCodes = new Map<string, { code: string; expiresAt: number }>();
 
 export const appRouter = router({
   system: systemRouter,
+  food: foodRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {

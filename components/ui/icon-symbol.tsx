@@ -17,6 +17,7 @@ const MAPPING = {
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
+  "fork.knife": "restaurant",
   "figure.run": "directions-run",
   "gamecontroller.fill": "sports-esports",
   "trophy.fill": "emoji-events",

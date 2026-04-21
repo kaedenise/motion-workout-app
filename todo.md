@@ -122,3 +122,16 @@
 - [x] Add share button to friend challenge acceptance flow
 - [x] Fix leaderboard score submission - added to challenge completion
 - [x] Enhance challenge screen with animations - glow effects, celebration animations
+
+
+## Calorie Tracker with AI Food Recognition (V6.4) ✅ COMPLETE
+- [x] Design data model for food logs and nutrition tracking
+- [x] Create database schema for calorie entries
+- [x] Build camera screen for food photos
+- [x] Implement AI food recognition via server LLM
+- [x] Create food log display with calorie totals
+- [x] Add nutrition breakdown (protein, carbs, fat)
+- [x] Implement daily calorie goals and progress
+- [x] Create calorie tracker tab in main navigation
+- [x] Add food history and edit/delete functionality
+- [x] Test AI recognition accuracy
