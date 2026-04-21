@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, Platform } from "react-native";
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, Platform, Share } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -64,6 +64,20 @@ export default function ChallengeInviteScreen() {
     router.back();
   };
 
+  const handleShare = async () => {
+    if (!invite) return;
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      Share.share({
+        message: `${invite.challengerName} challenged me to ${invite.targetReps} ${invite.exerciseType}s on MotionFit! Can you beat me?`,
+        title: "MotionFit Challenge",
+      });
+    } else {
+      const text = `${invite.challengerName} challenged me to ${invite.targetReps} ${invite.exerciseType}s on MotionFit! Can you beat me?`;
+      navigator.clipboard.writeText(text);
+    }
+  };
+
   return (
     <ScreenContainer edges={["top", "left", "right", "bottom"]} className="justify-center items-center px-4">
       <LinearGradient colors={["#FF6B35", "#FF8C42"]} style={styles.card}>
@@ -87,16 +101,29 @@ export default function ChallengeInviteScreen() {
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
-          <Pressable
-            onPress={handleDecline}
-            disabled={loading}
-            style={({ pressed }) => [
-              styles.declineBtn,
-              pressed && !loading && { opacity: 0.8 },
-            ]}
-          >
-            <Text style={styles.declineBtnText}>Decline</Text>
-          </Pressable>
+          <View style={styles.topButtonRow}>
+            <Pressable
+              onPress={handleDecline}
+              disabled={loading}
+              style={({ pressed }) => [
+                styles.declineBtn,
+                pressed && !loading && { opacity: 0.8 },
+              ]}
+            >
+              <Text style={styles.declineBtnText}>✕ Decline</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={handleShare}
+              disabled={loading}
+              style={({ pressed }) => [
+                styles.shareBtn,
+                pressed && !loading && { opacity: 0.8 },
+              ]}
+            >
+              <Text style={styles.shareBtnText}>🔗 Share</Text>
+            </Pressable>
+          </View>
 
           <Pressable
             onPress={handleAccept}
@@ -171,13 +198,31 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 12,
   },
+  topButtonRow: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+  },
   declineBtn: {
+    flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
     backgroundColor: "rgba(255,255,255,0.2)",
   },
   declineBtnText: {
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFF",
+    textAlign: "center",
+  },
+  shareBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  shareBtnText: {
+    fontSize: 14,
     fontWeight: "700",
     color: "#FFF",
     textAlign: "center",

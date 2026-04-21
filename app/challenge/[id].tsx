@@ -17,7 +17,9 @@ import { useColors } from "@/hooks/use-colors";
 import { useMotionDetector } from "@/hooks/use-motion-detector";
 import { useVoiceCoach } from "@/hooks/use-voice-coach";
 import { useProfile } from "@/lib/profile-context";
+import { usePhoneAuth } from "@/lib/phone-auth-context";
 import { GAME_CHALLENGES } from "@/lib/gamification";
+import { trpc } from "@/lib/trpc";
 
 const DIFFICULTY_COLORS: Record<string, string[]> = {
   easy: ["#22C55E", "#16A34A"],
@@ -31,6 +33,8 @@ export default function ChallengeScreen() {
   const colors = useColors();
   const router = useRouter();
   const { profile, completeChallenge, addXP } = useProfile();
+  const { phoneNumber } = usePhoneAuth();
+  const submitScoreMutation = trpc.leaderboard.submit.useMutation();
 
   useKeepAwake();
 
@@ -40,10 +44,14 @@ export default function ChallengeScreen() {
   const [reps, setReps] = useState(0);
   const [timeLeft, setTimeLeft] = useState(challenge?.timeLimitSeconds ?? 0);
   const [elapsedMs, setElapsedMs] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
   const repAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const celebrationAnim = useRef(new Animated.Value(0)).current;
 
   const { exercise: currentExercise, reps: repCount, confidence } = useMotionDetector(phase === "active" ? true : false);
 
@@ -58,10 +66,16 @@ export default function ChallengeScreen() {
       if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       voiceCoach.announceRep(newReps);
 
-      // Animate rep counter
+      // Animate rep counter with glow
       Animated.sequence([
-        Animated.timing(repAnim, { toValue: 1.4, duration: 80, useNativeDriver: true }),
-        Animated.timing(repAnim, { toValue: 1, duration: 120, useNativeDriver: true }),
+        Animated.timing(repAnim, { toValue: 1.5, duration: 100, useNativeDriver: true }),
+        Animated.timing(repAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+      ]).start();
+      
+      // Glow pulse
+      Animated.sequence([
+        Animated.timing(glowAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
+        Animated.timing(glowAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
       ]).start();
 
       // Check completion
@@ -121,13 +135,37 @@ export default function ChallengeScreen() {
     voiceCoach.announceStart();
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (timerRef.current) clearInterval(timerRef.current);
     setPhase("complete");
     voiceCoach.announceFinish();
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    
+    // Celebration animation
+    Animated.sequence([
+      Animated.timing(celebrationAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.timing(celebrationAnim, { toValue: 0.8, duration: 200, useNativeDriver: true }),
+    ]).start();
     if (challenge) {
       completeChallenge(challenge.id, challenge.xpReward);
+      if (phoneNumber) {
+        setIsSubmitting(true);
+        try {
+          await submitScoreMutation.mutateAsync({
+            phoneNumber,
+            displayName: profile.name,
+            avatarId: profile.avatarId,
+            xp: profile.xp + challenge.xpReward,
+            totalReps: reps,
+            totalWorkouts: 1,
+            currentStreak: profile.currentStreak,
+          });
+        } catch (error) {
+          console.error("Failed to submit score:", error);
+        } finally {
+          setIsSubmitting(false);
+        }
+      }
     }
   };
 
@@ -280,15 +318,29 @@ export default function ChallengeScreen() {
               </View>
             </View>
 
-            {/* Rep Counter */}
-            <Animated.Text
-              style={[
-                styles.repCounter,
-                { color: gradientColors[0], transform: [{ scale: repAnim }] },
-              ]}
-            >
-              {reps}
-            </Animated.Text>
+            {/* Rep Counter with Glow */}
+            <View style={styles.repCounterContainer}>
+              <Animated.View
+                style={[
+                  styles.repGlow,
+                  {
+                    backgroundColor: gradientColors[0],
+                    opacity: glowAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 0.3],
+                    }),
+                  },
+                ]}
+              />
+              <Animated.Text
+                style={[
+                  styles.repCounter,
+                  { color: gradientColors[0], transform: [{ scale: repAnim }] },
+                ]}
+              >
+                {reps}
+              </Animated.Text>
+            </View>
             <Text style={styles.repLabel}>/ {challenge.targetReps} reps</Text>
 
             {/* Progress Ring (simple bar) */}
@@ -317,14 +369,44 @@ export default function ChallengeScreen() {
         {/* ─── COMPLETE ─── */}
         {phase === "complete" && (
           <View style={styles.centerContent}>
-            <Text style={styles.resultEmoji}>🏆</Text>
+            <Animated.Text
+              style={[
+                styles.resultEmoji,
+                {
+                  transform: [
+                    {
+                      scale: celebrationAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.5, 1.2],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              🏆
+            </Animated.Text>
             <Text style={styles.resultTitle}>Challenge Complete!</Text>
             <Text style={styles.resultSubtitle}>
               {reps} reps in {formatTime(elapsedMs)}
             </Text>
-            <View style={styles.xpBadge}>
+            <Animated.View
+              style={[
+                styles.xpBadge,
+                {
+                  transform: [
+                    {
+                      scale: celebrationAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.8, 1.1],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
               <Text style={styles.xpBadgeText}>+{challenge.xpReward} XP</Text>
-            </View>
+            </Animated.View>
             <Pressable
               onPress={() => router.back()}
               style={({ pressed }) => [styles.doneBtn, pressed && { opacity: 0.85 }]}
@@ -482,6 +564,19 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   confidenceFill: { height: "100%", borderRadius: 2 },
+  repCounterContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    marginVertical: 8,
+  },
+  repGlow: {
+    position: "absolute",
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    zIndex: -1,
+  },
   repCounter: { fontSize: 96, fontWeight: "900", lineHeight: 110 },
   repLabel: { fontSize: 18, color: "rgba(255,255,255,0.6)", fontWeight: "600" },
   progressBarBg: {

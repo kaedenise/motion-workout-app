@@ -115,3 +115,10 @@
 - [x] Game challenges (Boss Battle, Speed Run, Endurance, Gauntlet) not working — FIXED: verified scoring logic and game mode definitions
 - [x] Leaderboard score submission not working — FIXED: verified submission API and phone auth integration
 - [x] Challenge friend page needs shareable links — FIXED: added deep link handler, motionfit:// scheme support, and share UI
+
+
+## IMMEDIATE FIXES NEEDED
+- [x] Fix Games tab routes - connect game mode IDs to challenge screen
+- [x] Add share button to friend challenge acceptance flow
+- [x] Fix leaderboard score submission - added to challenge completion
+- [x] Enhance challenge screen with animations - glow effects, celebration animations
