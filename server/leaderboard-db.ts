@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { getDb } from "./db";
 import { leaderboard, type InsertLeaderboardEntry } from "../drizzle/schema";
 
